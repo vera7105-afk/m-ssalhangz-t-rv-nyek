@@ -1,0 +1,6 @@
+{
+  "name": "Mássalhangzótörvények Gyakorló - 5. osztály",
+  "description": "Interaktív, játékos és motiváló magyar nyelvtan gyakorló felület 5. osztályosok számára a mássalhangzótörvények elsajátításához.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
