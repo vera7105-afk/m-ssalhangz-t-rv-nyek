@@ -3,6 +3,7 @@ import { BonusChallenge } from '../types';
 import { Sparkles, Trophy, Check, X, ArrowRight, RotateCcw, HelpCircle, ShieldCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundManager } from '../utils/audio';
+import { SpeakButton } from './SpeakButton';
 
 interface BonusChallengeGameProps {
   challenge: BonusChallenge;
@@ -131,12 +132,19 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
       </div>
 
       {/* Description */}
-      <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
-        <p className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-amber-600" />
-          A feladat leírása:
-        </p>
-        <p>{challenge.description}</p>
+      <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 leading-relaxed flex items-start justify-between gap-3">
+        <div>
+          <p className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            A feladat leírása:
+          </p>
+          <p>{challenge.description}</p>
+        </div>
+        <SpeakButton
+          text={challenge.description}
+          size="sm"
+          title="Feladatleírás felolvasása"
+        />
       </div>
 
       {/* ==================================================== */}
@@ -146,37 +154,63 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
         <div className="space-y-6">
           {/* Step 1: Available Words */}
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-              1. Kattints egy szóra:
-            </span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                1. Kattints egy szóra (a hangszóróval meg is hallgathatod):
+              </span>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {challenge.data.pairs.map((p: any) => {
                 const isSelected = selectedWord === p.word;
                 const isPaired = !!pairsMap[p.word];
 
                 return (
-                  <button
+                  <div
                     key={p.word}
-                    disabled={isSubmitted}
-                    onClick={() => {
-                      soundManager.playClick();
-                      setSelectedWord(p.word);
-                    }}
-                    className={`p-3 rounded-xl border text-center font-bold text-sm sm:text-base transition-all ${
-                      isSelected
-                        ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-md scale-105 ring-2 ring-amber-300'
-                        : isPaired
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                        : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-800'
-                    }`}
+                    className="relative group"
                   >
-                    <span>{p.word}</span>
-                    {isPaired && (
-                      <span className="block text-[10px] text-emerald-600 font-semibold mt-0.5">
-                        ✓ Hozzárendelve
-                      </span>
-                    )}
-                  </button>
+                    <div
+                      role="button"
+                      tabIndex={isSubmitted ? -1 : 0}
+                      onClick={() => {
+                        if (isSubmitted) return;
+                        soundManager.playClick();
+                        setSelectedWord(p.word);
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && !isSubmitted) {
+                          e.preventDefault();
+                          soundManager.playClick();
+                          setSelectedWord(p.word);
+                        }
+                      }}
+                      className={`w-full p-3 rounded-xl border text-center font-bold text-sm sm:text-base transition-all ${
+                        !isSubmitted ? 'cursor-pointer' : 'cursor-default'
+                      } ${
+                        isSelected
+                          ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-md scale-105 ring-2 ring-amber-300'
+                          : isPaired
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                          : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span>{p.word}</span>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <SpeakButton
+                            text={p.word}
+                            size="xs"
+                            title={`Kiejtés: ${p.word}`}
+                          />
+                        </div>
+                      </div>
+                      {isPaired && (
+                        <span className="block text-[10px] text-emerald-600 font-semibold mt-0.5">
+                          ✓ Hozzárendelve
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -218,9 +252,16 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400 font-medium">Hozzárendelt szó:</span>
                       {assignedWord ? (
-                        <span className="font-bold text-indigo-900 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
-                          {assignedWord}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-indigo-900 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
+                            {assignedWord}
+                          </span>
+                          <SpeakButton
+                            text={assignedWord}
+                            size="xs"
+                            title={`Kiejtés: ${assignedWord}`}
+                          />
+                        </div>
                       ) : (
                         <span className="text-slate-400 italic">Kattints a párosításhoz</span>
                       )}
@@ -257,36 +298,39 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
       {challenge.taskType === 'sentence_correction' && (
         <div className="space-y-6">
           <div className="bg-slate-900 text-slate-100 p-6 rounded-2xl border border-slate-800 shadow-inner">
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-widest block mb-4">
-              🕵️ Nyomozási terület (Kattints a 3 hibás szóra):
-            </span>
+            <div className="mb-4">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-widest block">
+                🕵️ Nyomozási terület (Kattints a 3 hibás szóra):
+              </span>
+            </div>
             <div className="flex flex-wrap gap-2 text-base sm:text-lg font-medium leading-loose">
               {challenge.data.words.map((w: any) => {
                 const isSelected = selectedWordIds.includes(w.id);
 
                 return (
-                  <button
-                    key={w.id}
-                    disabled={isSubmitted}
-                    onClick={() => {
-                      if (isSubmitted) return;
-                      soundManager.playClick();
-                      if (isSelected) {
-                        setSelectedWordIds((prev) => prev.filter((id) => id !== w.id));
-                      } else {
-                        if (selectedWordIds.length < 3) {
-                          setSelectedWordIds((prev) => [...prev, w.id]);
+                  <div key={w.id} className="inline-flex items-center">
+                    <button
+                      disabled={isSubmitted}
+                      onClick={() => {
+                        if (isSubmitted) return;
+                        soundManager.playClick();
+                        if (isSelected) {
+                          setSelectedWordIds((prev) => prev.filter((id) => id !== w.id));
+                        } else {
+                          if (selectedWordIds.length < 3) {
+                            setSelectedWordIds((prev) => [...prev, w.id]);
+                          }
                         }
-                      }
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border font-mono transition-all ${
-                      isSelected
-                        ? 'bg-amber-400 border-amber-400 text-slate-950 font-black shadow-md scale-105'
-                        : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-200'
-                    }`}
-                  >
-                    {w.text}
-                  </button>
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border font-mono transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-400 border-amber-400 text-slate-950 font-black shadow-md scale-105'
+                          : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-200'
+                      }`}
+                    >
+                      {w.text}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -332,9 +376,12 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
                   key={st.id}
                   className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
-                  <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
-                    {st.text}
-                  </p>
+                  <div className="flex items-center gap-2.5 flex-1">
+                    <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
+                      {st.text}
+                    </p>
+                    <SpeakButton text={st.text} size="xs" title="Állítás felolvasása" />
+                  </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       disabled={isSubmitted}
@@ -342,7 +389,7 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
                         soundManager.playClick();
                         setTfAnswers((prev) => ({ ...prev, [st.id]: true }));
                       }}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                         currentVal === true
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                           : 'bg-white text-slate-600 border-slate-300 hover:bg-emerald-50'
@@ -356,7 +403,7 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
                         soundManager.playClick();
                         setTfAnswers((prev) => ({ ...prev, [st.id]: false }));
                       }}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                         currentVal === false
                           ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                           : 'bg-white text-slate-600 border-slate-300 hover:bg-rose-50'
@@ -413,13 +460,18 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
                 </div>
               )}
             </div>
-            <div className="space-y-1.5 text-xs sm:text-sm">
-              <div className="flex items-center gap-2">
+            <div className="space-y-1.5 text-xs sm:text-sm flex-1">
+              <div className="flex items-center justify-between">
                 <h4 className="text-base font-black">
                   {isSuccess
                     ? '🎉 FANTASZTIKUS SIKER! (+10 BÓNUSZPONT)'
                     : 'KÖZEL VOLTÁL! (0 BÓNUSZPONT)'}
                 </h4>
+                <SpeakButton
+                  text={challenge.explanation}
+                  size="xs"
+                  title="Magyarázat felolvasása"
+                />
               </div>
               <p className="leading-relaxed font-medium">{challenge.explanation}</p>
             </div>
@@ -442,3 +494,4 @@ export const BonusChallengeGame: React.FC<BonusChallengeGameProps> = ({
     </div>
   );
 };
+

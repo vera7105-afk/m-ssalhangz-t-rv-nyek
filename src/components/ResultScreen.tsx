@@ -4,6 +4,7 @@ import { QUESTIONS, BONUS_CHALLENGES } from '../data/questions';
 import { Trophy, Award, RotateCcw, CheckCircle2, XCircle, ChevronDown, ChevronUp, Printer, Sparkles, Star } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundManager } from '../utils/audio';
+import { SpeakButton } from './SpeakButton';
 
 interface ResultScreenProps {
   userAnswers: UserAnswer[];
@@ -51,7 +52,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         grade: '3 (Közepes)',
         badge: 'bg-amber-500 text-white',
         title: 'Jó Úton Járó Felfedező! 👍',
-        message: 'Nem rossz próbálkozás! Az alapokat már érted, a Puskás Kisokos segítségével gyorsan még biztosabbá teheted a tudásodat.',
+        message: 'Nem rossz próbálkozás! Az alapokat már érted, a Tündér kisokos segítségével gyorsan még biztosabbá teheted a tudásodat.',
       };
     } else if (basePct >= 35) {
       return {
@@ -65,7 +66,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         grade: 'Gyakorolj még egy kicsit!',
         badge: 'bg-rose-500 text-white',
         title: 'Ne csüggedj, a kitartás meghozza a gyümölcsét! 💪',
-        message: 'A mássalhangzótörvények néha becsapósak, de a Puskás Kisokos szabályait átolvasva az újrajátszáskor sokkal jobb leszel!',
+        message: 'A mássalhangzótörvények néha becsapósak, de a Tündér kisokos szabályait átolvasva az újrajátszáskor sokkal jobb leszel!',
       };
     }
   };
@@ -309,21 +310,24 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2.5">
+                  <div className="flex items-start gap-2.5 flex-1">
                     {answer.isCorrect ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                     ) : (
                       <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                     )}
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-500">
                           {q.id}. feladat
                         </span>
                         {q.word && (
-                          <span className="font-bold text-indigo-900 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                            {q.word}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-indigo-900 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                              {q.word}
+                            </span>
+                            <SpeakButton text={q.word} size="xs" />
+                          </div>
                         )}
                       </div>
                       <p className="text-sm font-semibold text-slate-800 mt-1">
@@ -331,13 +335,16 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                       </p>
                     </div>
                   </div>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-md ${
-                      answer.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                    }`}
-                  >
-                    {answer.isCorrect ? '+1 pont' : '0 pont'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <SpeakButton text={q.prompt} size="xs" />
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                        answer.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {answer.isCorrect ? '+1 pont' : '0 pont'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Answer breakdown */}
@@ -358,9 +365,12 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                       <span className="font-bold text-emerald-700">{correctOpt.text}</span>
                     </div>
                   )}
-                  <p className="text-slate-600 pt-1 border-t border-slate-100">
-                    <strong>Nyelvtani magyarázat:</strong> {q.explanation}
-                  </p>
+                  <div className="flex items-start justify-between gap-2 pt-1 border-t border-slate-100">
+                    <p className="text-slate-600">
+                      <strong>Nyelvtani magyarázat:</strong> {q.explanation}
+                    </p>
+                    <SpeakButton text={q.explanation} size="xs" />
+                  </div>
                 </div>
               </div>
             );

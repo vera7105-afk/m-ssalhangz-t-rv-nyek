@@ -14,6 +14,9 @@ export interface Question {
   prompt: string;
   word?: string; // target word if applicable, e.g. "barátság"
   pronunciation?: string; // e.g. "[baráccság]"
+  castleFloor?: number; // 1, 2, or 3
+  castleLevelName?: string; // e.g. "1. Szint: Varázskert & Kastélykapu"
+  storySnippet?: string; // Context from Tündérszép Ilona és Árgyélus
   ruleCategory?: 
     | 'teljes_irasban_jelolt'
     | 'teljes_irasban_jeloletlen'
@@ -27,7 +30,7 @@ export interface Question {
   explanation: string;
   hint?: string;
   // For Part 2 (Spelling)
-  spellingContext?: string; // Sentence with blank, e.g. "A nagymama finom ebédet ___ (ad/aggya/adja)."
+  spellingContext?: string; // Sentence with blank
   spellingChoices?: string[];
   // For Part 3 (Odd One Out)
   oddReason?: string; // Explanation of why the chosen one is odd
@@ -36,6 +39,8 @@ export interface Question {
 export interface BonusChallenge {
   id: number;
   afterQuestionNumber: number;
+  castleFloor: number;
+  castleLevelName: string;
   title: string;
   subtitle: string;
   points: number; // 10 points

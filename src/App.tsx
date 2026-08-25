@@ -3,6 +3,7 @@ import { QUESTIONS, BONUS_CHALLENGES } from './data/questions';
 import { UserAnswer, TaskPart } from './types';
 import { Navbar } from './components/Navbar';
 import { ProgressBar } from './components/ProgressBar';
+import { CastleFloorsBanner } from './components/CastleFloorsBanner';
 import { QuizQuestion } from './components/QuizQuestion';
 import { SpellingQuestion } from './components/SpellingQuestion';
 import { OddOneOutQuestion } from './components/OddOneOutQuestion';
@@ -70,7 +71,11 @@ export default function App() {
       timestamp: Date.now(),
     };
 
-    setUserAnswers((prev) => [...prev, answerRecord]);
+    setUserAnswers((prev) => {
+      // Replace if answer for this question already existed (e.g. if navigated back) or append
+      const filtered = prev.filter((a) => a.questionId !== currentQuestion.id);
+      return [...filtered, answerRecord];
+    });
   };
 
   // Move to next step / check for 10-question bonus milestones
@@ -83,6 +88,7 @@ export default function App() {
     );
 
     if (matchingBonus && !completedBonusIds.includes(matchingBonus.id)) {
+      soundManager.playCastleLevelUp();
       setActiveBonusChallengeIndex(matchingBonus.id - 1);
       setShowBonusPrompt(true);
       return;
@@ -103,6 +109,7 @@ export default function App() {
 
   // Bonus Prompt Accept -> Open Bonus Game
   const handleAcceptBonus = () => {
+    soundManager.playFairySparkle();
     setShowBonusPrompt(false);
   };
 
@@ -126,8 +133,18 @@ export default function App() {
     proceedToNextQuestion();
   };
 
+  // Floor navigation handler from CastleFloorsBanner
+  const handleSelectFloor = (part: TaskPart, targetIndex: number) => {
+    soundManager.playFairySparkle();
+    setCurrentQuestionIndex(targetIndex);
+    setCurrentSelectedOption(null);
+    setActiveBonusChallengeIndex(null);
+    setShowBonusPrompt(false);
+  };
+
   // Restart whole game
   const handleRestart = () => {
+    soundManager.playFairySparkle();
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setCurrentSelectedOption(null);
@@ -139,22 +156,16 @@ export default function App() {
     setIsFinished(false);
   };
 
-  // Jump directly to a part (optional quick navigation)
-  const handleJumpToPart = (part: TaskPart) => {
-    let targetIndex = 0;
-    if (part === 'quiz') targetIndex = 0;
-    if (part === 'spelling') targetIndex = 10;
-    if (part === 'oddoneout') targetIndex = 20;
-
-    setCurrentQuestionIndex(targetIndex);
-    setCurrentSelectedOption(null);
-    setActiveBonusChallengeIndex(null);
-    setShowBonusPrompt(false);
-  };
-
   return (
-    <div className="min-h-screen bg-slate-100/70 text-slate-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Top Navigation */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 relative overflow-x-hidden">
+      {/* Fairytale Background Aura & Stars */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[120px]" />
+        <div className="absolute top-1/3 right-10 w-[500px] h-[500px] bg-purple-900/25 rounded-full blur-[140px]" />
+        <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-emerald-950/20 rounded-full blur-[120px]" />
+      </div>
+
+      {/* Top Navigation Bar */}
       <Navbar
         score={totalScore}
         currentQuestionIndex={currentQuestionIndex}
@@ -193,9 +204,18 @@ export default function App() {
             onComplete={handleCompleteBonusGame}
           />
         ) : (
-          /* VIEW 3: STANDARD QUESTIONS BY PART */
+          /* VIEW 3: CASTLE 3-FLOOR OVERVIEW + ACTIVE LEVEL QUESTIONS */
           <div className="space-y-6">
-            {/* Part 1: Quiz (1-10) */}
+            {/* Castle 3-Story Level Navigation Banner */}
+            <CastleFloorsBanner
+              currentPart={currentPart}
+              currentQuestionIndex={currentQuestionIndex}
+              totalQuestions={QUESTIONS.length}
+              userScore={totalScore}
+              onSelectFloor={handleSelectFloor}
+            />
+
+            {/* 1. Szint: Varázskert & Kastélykapu (Kvíz 1-10) */}
             {currentPart === 'quiz' && currentQuestion && (
               <QuizQuestion
                 question={currentQuestion}
@@ -206,7 +226,7 @@ export default function App() {
               />
             )}
 
-            {/* Part 2: Spelling (11-20) */}
+            {/* 2. Emelet: Kristályterem & Aranyalma Palota (Helyesírás 11-20) */}
             {currentPart === 'spelling' && currentQuestion && (
               <SpellingQuestion
                 question={currentQuestion}
@@ -217,7 +237,7 @@ export default function App() {
               />
             )}
 
-            {/* Part 3: Odd One Out & Error Hunt (21-30) */}
+            {/* 3. Emelet: Toronyszoba & Tündértrón (Kakukktojás & Hibakereső 21-30) */}
             {currentPart === 'oddoneout' && currentQuestion && (
               <OddOneOutQuestion
                 question={currentQuestion}
@@ -231,7 +251,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Bonus Challenge Modal Prompt (After Q10, Q20, Q30) */}
+      {/* Bonus Challenge Modal Prompt (After Floor 1: Q10, Floor 2: Q20, Floor 3: Q30) */}
       {activeBonusChallengeIndex !== null && showBonusPrompt && (
         <BonusChallengeModal
           challenge={BONUS_CHALLENGES[activeBonusChallengeIndex]}
@@ -241,27 +261,30 @@ export default function App() {
         />
       )}
 
-      {/* Grammar Reference Guide Modal (Puskás Kisokos) */}
+      {/* Grammar Reference Guide Modal (Tündéri Nyelvtani Kisokos) */}
       <GrammarGuideModal
         isOpen={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
       />
 
       {/* Footer */}
-      <footer className="py-4 border-t border-slate-200 bg-white text-center text-xs text-slate-500">
+      <footer className="py-5 border-t border-indigo-950 bg-slate-950/80 backdrop-blur-sm text-center text-xs text-indigo-300/80">
         <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            🎓 Magyar Nyelvtan 5. osztály • Mássalhangzótörvények Interaktív Gyakorló
+            🏰 Tündérszép Ilona kastélya • Árgyélus vándorútja a varázskastélyban • Mássalhangzótörvények
           </span>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsGuideOpen(true)}
-              className="text-indigo-600 hover:underline font-semibold"
+              onClick={() => {
+                soundManager.playFairySparkle();
+                setIsGuideOpen(true);
+              }}
+              className="text-amber-300 hover:text-amber-200 hover:underline font-bold cursor-pointer"
             >
-              📖 Nyelvtani Kisokos
+              📖 Tündér kisokos
             </button>
             <span>•</span>
-            <span className="text-slate-400">1 jó válasz = +1 pont | Bónusz = +10 pont</span>
+            <span className="text-slate-400">Jó válasz: +1 pont | Emeleti Bónusz: +10 pont</span>
           </div>
         </div>
       </footer>

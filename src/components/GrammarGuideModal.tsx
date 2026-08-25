@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, BookOpen, Volume2, Sparkles, CheckCircle2, Lightbulb } from 'lucide-react';
 import { CONSONANT_PAIRS, UNPAIRED_CONSONANTS, GRAMMAR_RULES } from '../data/grammarRules';
+import { SpeakButton } from './SpeakButton';
 
 interface GrammarGuideModalProps {
   isOpen: boolean;
@@ -22,17 +23,17 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">
-                Puskás Kisokos – Mássalhangzótörvények
+              <h2 className="text-lg font-bold text-slate-800 font-serif">
+                Tündér kisokos – Mássalhangzótörvények
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                5. osztályos tananyag gyors áttekintése és példák
+                5. osztályos tananyag hangzó kiejtéssel és példákkal
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -42,7 +43,7 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
         <div className="flex border-b border-slate-200 px-6 bg-slate-50/50 gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('pairs')}
-            className={`py-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+            className={`py-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'pairs'
                 ? 'border-indigo-600 text-indigo-600 bg-white shadow-2xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -52,7 +53,7 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
           </button>
           <button
             onClick={() => setActiveTab('rules')}
-            className={`py-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+            className={`py-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'rules'
                 ? 'border-indigo-600 text-indigo-600 bg-white shadow-2xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -62,7 +63,7 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
           </button>
           <button
             onClick={() => setActiveTab('quicktips')}
-            className={`py-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+            className={`py-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'quicktips'
                 ? 'border-indigo-600 text-indigo-600 bg-white shadow-2xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -87,15 +88,15 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
               <div>
                 <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-600" />
-                  A 9 hivatalos zöngésségi pár:
+                  A 9 hivatalos zöngésségi pár (kattints a hangszóróra a kiejtésért):
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {CONSONANT_PAIRS.map((pair, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between"
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs">
                           {pair.voiced}
                         </span>
@@ -104,9 +105,11 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
                           {pair.unvoiced}
                         </span>
                       </div>
-                      <span className="text-[11px] font-medium text-slate-400">
-                        zöngés / zöngétlen
-                      </span>
+                      <SpeakButton
+                        text={`${pair.voiced}, ${pair.unvoiced}`}
+                        size="xs"
+                        title={`Hangpár kiejtése: ${pair.voiced} és ${pair.unvoiced}`}
+                      />
                     </div>
                   ))}
                 </div>
@@ -118,18 +121,32 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
                   Páratlan mássalhangzók:
                 </h4>
                 <div className="space-y-2 text-xs">
-                  <p className="flex items-center gap-2">
-                    <span className="font-semibold text-blue-700">Mindig zöngés (nincs párja):</span>
-                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
-                      {UNPAIRED_CONSONANTS.voicedOnly.join(', ')}
-                    </span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="font-semibold text-orange-700">Mindig zöngétlen (nincs párja):</span>
-                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
-                      {UNPAIRED_CONSONANTS.unvoicedOnly.join(', ')}
-                    </span>
-                  </p>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="flex items-center gap-2">
+                      <span className="font-semibold text-blue-700">Mindig zöngés (nincs párja):</span>
+                      <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
+                        {UNPAIRED_CONSONANTS.voicedOnly.join(', ')}
+                      </span>
+                    </p>
+                    <SpeakButton
+                      text={UNPAIRED_CONSONANTS.voicedOnly.join(', ')}
+                      size="xs"
+                      title="Mindig zöngés hangok felolvasása"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="flex items-center gap-2">
+                      <span className="font-semibold text-orange-700">Mindig zöngétlen (nincs párja):</span>
+                      <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
+                        {UNPAIRED_CONSONANTS.unvoicedOnly.join(', ')}
+                      </span>
+                    </p>
+                    <SpeakButton
+                      text={UNPAIRED_CONSONANTS.unvoicedOnly.join(', ')}
+                      size="xs"
+                      title="Mindig zöngétlen hangok felolvasása"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -144,9 +161,16 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
                   className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-indigo-300 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <h4 className="font-bold text-slate-900 text-sm sm:text-base">
-                      {rule.name}
-                    </h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-900 text-sm sm:text-base">
+                        {rule.name}
+                      </h4>
+                      <SpeakButton
+                        text={rule.name}
+                        size="xs"
+                        title="Törvény nevének felolvasása"
+                      />
+                    </div>
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${rule.badgeColor}`}>
                       {rule.shortName}
                     </span>
@@ -159,12 +183,19 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {rule.examples.map((ex, exIdx) => (
-                      <div key={exIdx} className="bg-slate-50/70 p-2 rounded-lg border border-slate-100">
-                        <div className="flex items-center gap-1.5">
-                          <strong className="text-slate-800">{ex.written}</strong>
-                          <span className="text-indigo-600 font-semibold">{ex.pronounced}</span>
+                      <div key={exIdx} className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-100 flex items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <strong className="text-slate-800">{ex.written}</strong>
+                            <span className="text-indigo-600 font-semibold">{ex.pronounced}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">{ex.breakdown}</div>
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">{ex.breakdown}</div>
+                        <SpeakButton
+                          text={ex.written}
+                          size="xs"
+                          title={`Kiejtés meghallgatása: ${ex.written}`}
+                        />
                       </div>
                     ))}
                   </div>
@@ -190,41 +221,56 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
                     <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                       1
                     </span>
-                    <span>
-                      <strong>Nézd meg a két találkozó mássalhangzót!</strong> Például: <em>vasgolyó</em> → találkozik az <strong>s</strong> és <strong>g</strong>.
-                    </span>
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span>
+                        <strong>Nézd meg a két találkozó mássalhangzót!</strong> Például: <em>vasgolyó</em> → találkozik az <strong>s</strong> és <strong>g</strong>.
+                      </span>
+                      <SpeakButton text="vasgolyó" size="xs" />
+                    </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                       2
                     </span>
-                    <span>
-                      <strong>Ha P vagy B előtt N áll:</strong> Mindig <em>képzés helye szerinti hasonulás</em> (színpad → [szímpad], különben → [külömben])!
-                    </span>
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span>
+                        <strong>Ha P vagy B előtt N áll:</strong> Mindig <em>képzés helye szerinti hasonulás</em> (színpad → [szímpad], különben → [külömben])!
+                      </span>
+                      <SpeakButton text="színpad, különben" size="xs" />
+                    </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                       3
                     </span>
-                    <span>
-                      <strong>Ha egy teljesen új, harmadik hang jön létre:</strong> Akkor az <em>összeolvadás</em> (pl. t+s = [ccs] barátság, t+j = [tty] látja)!
-                    </span>
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span>
+                        <strong>Ha egy teljesen új, harmadik hang jön létre:</strong> Akkor az <em>összeolvadás</em> (pl. t+s = [ccs] barátság, t+j = [tty] látja)!
+                      </span>
+                      <SpeakButton text="barátság, látja" size="xs" />
+                    </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                       4
                     </span>
-                    <span>
-                      <strong>Ha le is írjuk duplán a betűt:</strong> Az <em>írásban jelölt teljes hasonulás</em> (pl. azzal, virággal, késsel, moss)!
-                    </span>
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span>
+                        <strong>Ha le is írjuk duplán a betűt:</strong> Az <em>írásban jelölt teljes hasonulás</em> (pl. azzal, virággal, késsel, moss)!
+                      </span>
+                      <SpeakButton text="azzal, virággal, késsel, moss" size="xs" />
+                    </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                       5
                     </span>
-                    <span>
-                      <strong>Ha 3 mássalhangzó torlódik és a középső eltűnik:</strong> Az <em>mássalhangzó-kiesés</em> (pl. mondta → [monta], küldte → [külte])!
-                    </span>
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span>
+                        <strong>Ha 3 mássalhangzó torlódik és a középső eltűnik:</strong> Az <em>mássalhangzó-kiesés</em> (pl. mondta → [monta], küldte → [külte])!
+                      </span>
+                      <SpeakButton text="mondta, küldte" size="xs" />
+                    </div>
                   </li>
                 </ul>
               </div>
@@ -236,7 +282,7 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
         <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-all shadow-xs active:scale-95"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-all shadow-xs active:scale-95 cursor-pointer"
           >
             Értem, mehet a gyakorlás!
           </button>
@@ -245,3 +291,4 @@ export const GrammarGuideModal: React.FC<GrammarGuideModalProps> = ({ isOpen, on
     </div>
   );
 };
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, BookOpen, Sparkles, Flame } from 'lucide-react';
+import { Volume2, VolumeX, BookOpen, Sparkles, Flame, Castle, Crown, Trees } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 
 interface NavbarProps {
@@ -26,60 +26,77 @@ export const Navbar: React.FC<NavbarProps> = ({
   const getPartBadge = () => {
     switch (currentPart) {
       case 'quiz':
-        return { label: '1. Rész: Kvíz (Négyválasztós)', color: 'bg-indigo-600 text-white' };
+        return {
+          floor: '1. szint',
+          label: '1. szint: Varázskert & Kastélykapu (Kvíz)',
+          color: 'bg-emerald-600/90 text-emerald-100 border-emerald-500/50',
+          icon: Trees,
+        };
       case 'spelling':
-        return { label: '2. Rész: Helyesírási feladatok', color: 'bg-emerald-600 text-white' };
+        return {
+          floor: '2. emelet',
+          label: '2. emelet: Kristályterem & Aranyalma Palota (Helyesírás)',
+          color: 'bg-indigo-600/90 text-indigo-100 border-indigo-500/50',
+          icon: Castle,
+        };
       case 'oddoneout':
-        return { label: '3. Rész: Kakukktojás & Hibakereső', color: 'bg-amber-600 text-white' };
+        return {
+          floor: '3. emelet',
+          label: '3. emelet: Toronyszoba & Tündértrón (Kakukktojás)',
+          color: 'bg-amber-600/90 text-amber-100 border-amber-500/50',
+          icon: Crown,
+        };
     }
   };
 
   const partInfo = getPartBadge();
+  const IconComp = partInfo.icon;
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-indigo-900/60 shadow-lg text-white">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        {/* Left: Brand & Part Indicator */}
+        {/* Left: Fairytale Brand & Floor Indicator */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-xl shadow-md">
-            M
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 via-yellow-500 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-md border border-amber-300">
+            🏰
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight leading-none">
-                Mássalhangzó Kaland
+              <h1 className="text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-white font-serif tracking-tight leading-none">
+                Tündérszép Ilona kastélya
               </h1>
-              <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hidden sm:inline-block">
-                5. osztály
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 hidden sm:inline-block">
+                5. osztályos nyelvtan
               </span>
             </div>
             <div className="mt-1 flex items-center gap-2">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${partInfo.color}`}>
-                {partInfo.label}
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5 shadow-2xs ${partInfo.color}`}>
+                <IconComp className="w-3.5 h-3.5" />
+                <span>{partInfo.label}</span>
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right: Scores, Streak & Tools */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* Right: Scores, Streak & Fairytale Tools */}
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Streak Counter */}
           {streak > 1 && (
-            <div className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-2.5 py-1 rounded-lg text-xs font-bold animate-bounce shadow-xs">
-              <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
+            <div className="flex items-center gap-1 bg-amber-500/20 border border-amber-400 text-amber-300 px-2.5 py-1 rounded-xl text-xs font-bold animate-bounce shadow-xs">
+              <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
               <span>{streak}x széria!</span>
             </div>
           )}
 
           {/* Score Badge */}
-          <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-xl shadow-xs">
-            <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
+          <div className="flex items-center gap-2 bg-indigo-950/80 border border-amber-400/50 text-white px-3.5 py-1.5 rounded-xl shadow-inner">
+            <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
             <div className="text-right">
-              <span className="text-xs text-slate-300 font-medium mr-1">Pontszám:</span>
-              <span className="text-sm sm:text-base font-black text-amber-300">{score}</span>
+              <span className="text-xs text-indigo-300 font-medium mr-1">Pont:</span>
+              <span className="text-sm sm:text-base font-black text-amber-300 font-serif">{score}</span>
               {bonusPoints > 0 && (
                 <span className="text-[10px] ml-1 text-emerald-400 font-bold">
-                  (+{bonusPoints} bónusz)
+                  (+{bonusPoints})
                 </span>
               )}
             </div>
@@ -88,14 +105,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Grammar Guide Button */}
           <button
             onClick={() => {
-              soundManager.playClick();
+              soundManager.playFairySparkle();
               onOpenGuide();
             }}
-            className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs active:scale-95"
-            title="Nyelvtani Kisokos megnyitása"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white border border-purple-400/40 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+            title="Tündér kisokos megnyitása"
           >
-            <BookOpen className="w-4 h-4" />
-            <span className="hidden md:inline">Puskás Kisokos</span>
+            <BookOpen className="w-4 h-4 text-amber-300" />
+            <span className="hidden md:inline">Tündér kisokos</span>
           </button>
 
           {/* Sound Toggle */}
@@ -103,10 +120,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => {
               onToggleMute();
             }}
-            className={`p-2 rounded-xl border transition-all ${
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
               isMuted
-                ? 'bg-slate-100 border-slate-300 text-slate-400 hover:text-slate-600'
-                : 'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                ? 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300'
+                : 'bg-indigo-900/80 border-indigo-600 text-amber-300 hover:bg-indigo-800'
             }`}
             title={isMuted ? 'Hang bekapcsolása' : 'Hang némítása'}
           >
