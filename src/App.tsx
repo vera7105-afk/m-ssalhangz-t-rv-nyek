@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QUESTIONS, BONUS_CHALLENGES } from './data/questions';
-import { UserAnswer, TaskPart } from './types';
+import { UserAnswer, TaskPart, UserProfile } from './types';
 import { Navbar } from './components/Navbar';
 import { ProgressBar } from './components/ProgressBar';
 import { CastleFloorsBanner } from './components/CastleFloorsBanner';
@@ -11,9 +11,49 @@ import { BonusChallengeModal } from './components/BonusChallengeModal';
 import { BonusChallengeGame } from './components/BonusChallengeGame';
 import { GrammarGuideModal } from './components/GrammarGuideModal';
 import { ResultScreen } from './components/ResultScreen';
+import { UserProfileModal } from './components/UserProfileModal';
+import { LoginModal } from './components/LoginModal';
+import { TeacherDashboardModal } from './components/TeacherDashboardModal';
+import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { soundManager } from './utils/audio';
+import {
+  getSavedUserProfile,
+  syncUserProfileToSupabase,
+  saveTaskScoreToSupabase,
+  saveBonusScoreToSupabase,
+  saveGameSessionToSupabase,
+  getStudentLocalProgress,
+  saveStudentLocalProgress,
+  resetStudentLocalProgress,
+  fetchUserProfile,
+  isSupabaseConfigured,
+} from './utils/supabase';
+
+// Default initial guest profile if none saved
+const DEFAULT_STUDENT_PROFILE: UserProfile = {
+  username: 'argyelus.peter',
+  displayName: 'Kovács Péter (Árgyélus)',
+  role: 'diak',
+  grade: '5.a',
+  totalScore: 0,
+  quizScore: 0,
+  spellingScore: 0,
+  oddoneoutScore: 0,
+  bonusScore: 0,
+  tasksCompleted: 0,
+};
 
 export default function App() {
+  // User Profile & Login State
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    return getSavedUserProfile() || DEFAULT_STUDENT_PROFILE;
+  });
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isTeacherDashboardOpen, setIsTeacherDashboardOpen] = useState(false);
+  const [isDbSettingsOpen, setIsDbSettingsOpen] = useState(false);
+  const [isDbConnected, setIsDbConnected] = useState(isSupabaseConfigured);
+
   // Navigation & Game State
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
@@ -30,6 +70,55 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [streak, setStreak] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+
+  // Initialize & sync user profile on startup
+  useEffect(() => {
+    setIsDbConnected(isSupabaseConfigured());
+    const saved = getSavedUserProfile();
+    if (saved) {
+      loadStudentSession(saved.username);
+      syncUserProfileToSupabase(saved);
+    }
+  }, []);
+
+  // Load a student's session & saved progress
+  const loadStudentSession = async (uname: string) => {
+    const local = getStudentLocalProgress(uname);
+    setUserAnswers(local.userAnswers || []);
+    setCompletedBonusIds(local.completedBonusIds || []);
+    setCurrentQuestionIndex(local.currentQuestionIndex || 0);
+    setCurrentSelectedOption(null);
+    setActiveBonusChallengeIndex(null);
+    setShowBonusPrompt(false);
+    setIsFinished(false);
+
+    // Calculate bonus points from completed IDs
+    const bPoints = (local.completedBonusIds || []).length * 10;
+    setBonusPoints(bPoints);
+
+    // Try to fetch latest profile from Supabase
+    const cloud = await fetchUserProfile(uname);
+    if (cloud) {
+      setUserProfile(cloud);
+    }
+  };
+
+  // Login / Switch Student handler
+  const handleLoginSuccess = async (profile: UserProfile) => {
+    setUserProfile(profile);
+    setIsLoginModalOpen(false);
+    await loadStudentSession(profile.username);
+  };
+
+  // Update profile handler
+  const handleSaveProfile = (updated: UserProfile) => {
+    setUserProfile(updated);
+    syncUserProfileToSupabase(updated);
+  };
+
+  const handleConfigChanged = () => {
+    setIsDbConnected(isSupabaseConfigured());
+  };
 
   // Current Question
   const currentQuestion = QUESTIONS[currentQuestionIndex];
@@ -54,6 +143,7 @@ export default function App() {
 
     const chosenOption = currentQuestion.options.find((o) => o.id === optionId);
     const isCorrect = !!chosenOption?.isCorrect;
+    const awardedPoints = isCorrect ? 1 : 0;
 
     if (isCorrect) {
       soundManager.playCorrect();
@@ -67,15 +157,51 @@ export default function App() {
       questionId: currentQuestion.id,
       selectedOptionId: optionId,
       isCorrect,
-      pointsAwarded: isCorrect ? 1 : 0,
+      pointsAwarded: awardedPoints,
       timestamp: Date.now(),
     };
 
-    setUserAnswers((prev) => {
-      // Replace if answer for this question already existed (e.g. if navigated back) or append
-      const filtered = prev.filter((a) => a.questionId !== currentQuestion.id);
-      return [...filtered, answerRecord];
+    const newAnswers = [...userAnswers.filter((a) => a.questionId !== currentQuestion.id), answerRecord];
+    setUserAnswers(newAnswers);
+
+    // Save individual student progress locally
+    saveStudentLocalProgress(
+      userProfile.username,
+      newAnswers,
+      completedBonusIds,
+      currentQuestionIndex
+    );
+
+    // Save individual task score to Supabase database
+    saveTaskScoreToSupabase({
+      username: userProfile.username,
+      user_role: userProfile.role,
+      question_id: currentQuestion.id,
+      task_part: currentQuestion.part,
+      castle_floor: currentQuestion.castleFloor || 1,
+      question_title: currentQuestion.title || currentQuestion.prompt,
+      selected_option: chosenOption?.text || optionId,
+      is_correct: isCorrect,
+      points_awarded: awardedPoints,
     });
+
+    // Update & sync user profile total score
+    const newQuizScore = newAnswers.filter((a) => a.questionId <= 10 && a.isCorrect).length;
+    const newSpellingScore = newAnswers.filter((a) => a.questionId > 10 && a.questionId <= 20 && a.isCorrect).length;
+    const newOddScore = newAnswers.filter((a) => a.questionId > 20 && a.isCorrect).length;
+    const newTotalScore = newQuizScore + newSpellingScore + newOddScore + bonusPoints;
+
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      totalScore: newTotalScore,
+      quizScore: newQuizScore,
+      spellingScore: newSpellingScore,
+      oddoneoutScore: newOddScore,
+      bonusScore: bonusPoints,
+      tasksCompleted: newAnswers.length,
+    };
+    setUserProfile(updatedProfile);
+    syncUserProfileToSupabase(updatedProfile);
   };
 
   // Move to next step / check for 10-question bonus milestones
@@ -101,9 +227,33 @@ export default function App() {
   const proceedToNextQuestion = () => {
     setCurrentSelectedOption(null);
     if (currentQuestionIndex < QUESTIONS.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      const nextIdx = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIdx);
+      saveStudentLocalProgress(
+        userProfile.username,
+        userAnswers,
+        completedBonusIds,
+        nextIdx
+      );
     } else {
       setIsFinished(true);
+
+      // Save complete session to Supabase
+      const finalQuiz = userAnswers.filter((a) => a.questionId <= 10 && a.isCorrect).length;
+      const finalSpelling = userAnswers.filter((a) => a.questionId > 10 && a.questionId <= 20 && a.isCorrect).length;
+      const finalOdd = userAnswers.filter((a) => a.questionId > 20 && a.isCorrect).length;
+      const finalTotal = finalQuiz + finalSpelling + finalOdd + bonusPoints;
+
+      saveGameSessionToSupabase(
+        userProfile.username,
+        finalTotal,
+        finalQuiz,
+        finalSpelling,
+        finalOdd,
+        bonusPoints,
+        userAnswers.filter((a) => a.isCorrect).length,
+        completedBonusIds.length
+      );
     }
   };
 
@@ -122,12 +272,44 @@ export default function App() {
 
   // Bonus Game Completed
   const handleCompleteBonusGame = (earnedPoints: number) => {
+    let updatedBonusPoints = bonusPoints;
+    let updatedBonusIds = completedBonusIds;
+
     if (activeBonusChallengeIndex !== null) {
       const bonus = BONUS_CHALLENGES[activeBonusChallengeIndex];
-      setCompletedBonusIds((prev) => [...prev, bonus.id]);
+      updatedBonusIds = [...completedBonusIds, bonus.id];
+      setCompletedBonusIds(updatedBonusIds);
+
       if (earnedPoints > 0) {
-        setBonusPoints((prev) => prev + earnedPoints);
+        updatedBonusPoints = bonusPoints + earnedPoints;
+        setBonusPoints(updatedBonusPoints);
       }
+
+      // Save bonus challenge score to Supabase
+      saveBonusScoreToSupabase(
+        userProfile.username,
+        bonus.id,
+        bonus.castleFloor,
+        bonus.title,
+        earnedPoints
+      );
+
+      // Save student progress locally
+      saveStudentLocalProgress(
+        userProfile.username,
+        userAnswers,
+        updatedBonusIds,
+        currentQuestionIndex
+      );
+
+      // Sync user profile with bonus points
+      const updatedProfile: UserProfile = {
+        ...userProfile,
+        bonusScore: updatedBonusPoints,
+        totalScore: baseScore + updatedBonusPoints,
+      };
+      setUserProfile(updatedProfile);
+      syncUserProfileToSupabase(updatedProfile);
     }
     setActiveBonusChallengeIndex(null);
     proceedToNextQuestion();
@@ -140,11 +322,19 @@ export default function App() {
     setCurrentSelectedOption(null);
     setActiveBonusChallengeIndex(null);
     setShowBonusPrompt(false);
+
+    saveStudentLocalProgress(
+      userProfile.username,
+      userAnswers,
+      completedBonusIds,
+      targetIndex
+    );
   };
 
-  // Restart whole game
+  // Restart whole game for current student
   const handleRestart = () => {
     soundManager.playFairySparkle();
+    resetStudentLocalProgress(userProfile.username);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setCurrentSelectedOption(null);
@@ -176,6 +366,12 @@ export default function App() {
         onToggleMute={handleToggleMute}
         onOpenGuide={() => setIsGuideOpen(true)}
         bonusPoints={bonusPoints}
+        userProfile={userProfile}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onOpenTeacherDashboard={() => setIsTeacherDashboardOpen(true)}
+        onOpenDatabaseSettings={() => setIsDbSettingsOpen(true)}
+        isDbConnected={isDbConnected}
       />
 
       {/* Progress Track (Hidden on Results) */}
@@ -196,6 +392,7 @@ export default function App() {
             bonusPoints={bonusPoints}
             completedBonusIds={completedBonusIds}
             onRestart={handleRestart}
+            userProfile={userProfile}
           />
         ) : activeBonusChallengeIndex !== null && !showBonusPrompt ? (
           /* VIEW 2: ACTIVE BONUS CHALLENGE GAME */
@@ -267,6 +464,50 @@ export default function App() {
         onClose={() => setIsGuideOpen(false)}
       />
 
+      {/* Login & Student Switcher Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        onOpenDatabaseSettings={() => {
+          setIsLoginModalOpen(false);
+          setIsDbSettingsOpen(true);
+        }}
+        currentProfile={userProfile}
+        allowClose={true}
+      />
+
+      {/* User Profile & Role Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        profile={userProfile}
+        onSaveProfile={handleSaveProfile}
+        onSwitchUser={() => {
+          setIsProfileModalOpen(false);
+          setIsLoginModalOpen(true);
+        }}
+        onOpenDatabaseSettings={() => {
+          setIsProfileModalOpen(false);
+          setIsDbSettingsOpen(true);
+        }}
+        isDbConnected={isDbConnected}
+      />
+
+      {/* Teacher Dashboard Modal */}
+      <TeacherDashboardModal
+        isOpen={isTeacherDashboardOpen}
+        onClose={() => setIsTeacherDashboardOpen(false)}
+        currentUsername={userProfile.username}
+      />
+
+      {/* Supabase Database Settings & SQL Schema Modal */}
+      <SupabaseConfigModal
+        isOpen={isDbSettingsOpen}
+        onClose={() => setIsDbSettingsOpen(false)}
+        onConfigChanged={handleConfigChanged}
+      />
+
       {/* Footer */}
       <footer className="py-5 border-t border-indigo-950 bg-slate-950/80 backdrop-blur-sm text-center text-xs text-indigo-300/80">
         <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -277,6 +518,16 @@ export default function App() {
             <button
               onClick={() => {
                 soundManager.playFairySparkle();
+                setIsLoginModalOpen(true);
+              }}
+              className="text-amber-400 hover:text-amber-300 hover:underline font-bold cursor-pointer"
+            >
+              👤 Diák bejelentkezés
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => {
+                soundManager.playFairySparkle();
                 setIsGuideOpen(true);
               }}
               className="text-amber-300 hover:text-amber-200 hover:underline font-bold cursor-pointer"
@@ -284,10 +535,19 @@ export default function App() {
               📖 Tündér kisokos
             </button>
             <span>•</span>
-            <span className="text-slate-400">Jó válasz: +1 pont | Emeleti Bónusz: +10 pont</span>
+            <button
+              onClick={() => {
+                soundManager.playFairySparkle();
+                setIsDbSettingsOpen(true);
+              }}
+              className="text-indigo-300 hover:text-white hover:underline cursor-pointer"
+            >
+              🗄️ Supabase SQL
+            </button>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+

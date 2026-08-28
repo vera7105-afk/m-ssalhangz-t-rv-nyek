@@ -72,3 +72,50 @@ export interface GrammarRuleInfo {
   }[];
   tip: string;
 }
+
+export type UserRole = 'diak' | 'tanar' | 'admin';
+
+export interface UserProfile {
+  id?: string;
+  username: string;
+  displayName?: string;
+  role: UserRole;
+  grade?: string;
+  totalScore: number;
+  quizScore: number;
+  spellingScore: number;
+  oddoneoutScore: number;
+  bonusScore: number;
+  tasksCompleted: number;
+  lastActive?: string;
+  createdAt?: string;
+}
+
+export interface SupabaseTaskScoreRecord {
+  id?: string;
+  username: string;
+  user_role: string;
+  question_id: number;
+  task_part: TaskPart;
+  castle_floor: number;
+  question_title?: string;
+  selected_option?: string;
+  is_correct: boolean;
+  points_awarded: number;
+  created_at?: string;
+}
+
+export interface StudentScoreSummary {
+  username: string;
+  displayName?: string;
+  role: string;
+  total_score: number;
+  quiz_score: number;
+  spelling_score: number;
+  oddoneout_score: number;
+  bonus_score: number;
+  tasks_completed: number;
+  last_active: string;
+  rank?: number;
+}
+

@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
-import { UserAnswer } from '../types';
+import React, { useState, useEffect } from 'react';
+import { UserAnswer, UserProfile } from '../types';
 import { QUESTIONS, BONUS_CHALLENGES } from '../data/questions';
-import { Trophy, Award, RotateCcw, CheckCircle2, XCircle, ChevronDown, ChevronUp, Printer, Sparkles, Star } from 'lucide-react';
+import { Trophy, Award, RotateCcw, CheckCircle2, XCircle, ChevronDown, ChevronUp, Printer, Sparkles, Star, Database, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundManager } from '../utils/audio';
 import { SpeakButton } from './SpeakButton';
+import { isSupabaseConfigured } from '../utils/supabase';
 
 interface ResultScreenProps {
   userAnswers: UserAnswer[];
   bonusPoints: number;
   completedBonusIds: number[];
   onRestart: () => void;
+  userProfile?: UserProfile;
 }
 
 export const ResultScreen: React.FC<ResultScreenProps> = ({
@@ -18,16 +20,24 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   bonusPoints,
   completedBonusIds,
   onRestart,
+  userProfile,
 }) => {
-  const [studentName, setStudentName] = useState('');
+  const [studentName, setStudentName] = useState(userProfile?.displayName || userProfile?.username || '');
   const [showCertificate, setShowCertificate] = useState(false);
   const [expandedSection, setExpandedSection] = useState<'all' | 'errors' | 'none'>('errors');
+
+  useEffect(() => {
+    if (userProfile) {
+      setStudentName(userProfile.displayName || userProfile.username);
+    }
+  }, [userProfile]);
 
   // Compute stats
   const baseCorrectCount = userAnswers.filter((a) => a.isCorrect).length;
   const totalScore = baseCorrectCount + bonusPoints;
   const maxPossibleScore = QUESTIONS.length + BONUS_CHALLENGES.length * 10; // 30 + 30 = 60
   const percentage = Math.round((totalScore / maxPossibleScore) * 100);
+
 
   // Hungarian grade logic (5th grade)
   const getGradeInfo = () => {
@@ -106,6 +116,17 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
             {gradeInfo.title}
           </h1>
+
+          {userProfile && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-300 text-xs text-slate-700 font-semibold">
+              <span>👤 Diák: <strong>{userProfile.displayName || userProfile.username}</strong> ({userProfile.grade || '5. osztály'})</span>
+              <span>•</span>
+              <span className="text-emerald-700 flex items-center gap-1 font-bold">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {isSupabaseConfigured() ? 'Supabase-be elmentve' : 'Helyileg elmentve'}
+              </span>
+            </div>
+          )}
 
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
             {gradeInfo.message}
